@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "rootutils",
+    "pandas",
     "roboflow",
     "torch",
     "monai >= 1.6.1",
@@ -13,8 +14,10 @@ dependencies = [
     "wandb",
     "opencv-python",
     "matplobblib",
-    "ipykernel>=7.4.0",
 ]
+
+[tool.uv]
+default-groups = ["dev", "notebooks"]
 
 [tool.uv.sources]
 nnunetv2 = { git = "https://github.com/MIC-DKFZ/nnUNet.git" }
@@ -23,6 +26,10 @@ nnunetv2 = { git = "https://github.com/MIC-DKFZ/nnUNet.git" }
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.0",
+]
+notebooks = [
+    "ipykernel>=7.4.0",
+    "nbclient>=0.11.0",
 ]
 
 [tool.ruff]
