@@ -1,5 +1,5 @@
 workspace: "gluwxyws"
 project: "root_cross_section"
-version: 1
+version: 3
 format: "coco-segmentation"
 location: ${paths.dataset}

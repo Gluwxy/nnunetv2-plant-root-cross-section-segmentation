@@ -1,5 +1,5 @@
 project_root: ${oc.env:PROJECT_ROOT}
-dataset: ${oc.env:PROJECT_ROOT}/png-mask-semantic-dataset
+dataset: ${oc.env:PROJECT_ROOT}/coco_semantic_segmentation_dataset
 nnunet_dataset: ${oc.env:PROJECT_ROOT}/nnunet_dataset
 
 nnunet_raw: ${oc.env:PROJECT_ROOT}/data/nnUNet_raw/Dataset001_RootVascularBundle
