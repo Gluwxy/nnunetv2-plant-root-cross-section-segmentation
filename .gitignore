@@ -12,3 +12,5 @@ __pycache__/
 .DS_Store
 nnunet_dataset/
 results/
+CLAUDE.local.md
+coco_semantic_segmentation_dataset/
