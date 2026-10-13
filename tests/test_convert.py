@@ -9,14 +9,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.utils.convert import (
-    convert_to_nnunet_format,
-    extract_group,
-    get_mapped_classes,
-    make_grouped_partition,
-    rasterize_annotations,
-    resolve_draw_order,
-)
+from src.utils.coco import extract_group, get_mapped_classes, rasterize_annotations, resolve_draw_order
+from src.utils.convert import convert_to_nnunet_format, make_grouped_partition
 from tests.checks import CLASSES, assert_exclusive_nested_classes, assert_no_group_leakage
 
 GROUP_PATTERN = r"^([^-]+)-"

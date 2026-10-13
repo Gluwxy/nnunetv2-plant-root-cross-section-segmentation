@@ -13,7 +13,8 @@ import pytest
 from omegaconf import OmegaConf
 from PIL import Image
 
-from src.utils.convert import COCO_FILENAME, convert_to_nnunet_format, load_coco, normalize_name
+from src.utils.coco import COCO_FILENAME, load_coco, normalize_name
+from src.utils.convert import convert_to_nnunet_format
 from tests.checks import (
     CLASSES,
     assert_exclusive_nested_classes,
