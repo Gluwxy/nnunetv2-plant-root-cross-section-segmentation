@@ -1,0 +1,73 @@
+# Get the absolute path to the project root directory
+ROOT_DIR := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+
+# Docker configuration variables
+IMAGE_NAME := nnunet-trainer
+# --ipc=host is critical for PyTorch to prevent shared memory limits from crashing the dataloaders.
+# No -it, so training can run unattended (nohup, tmux, ssh without a TTY).
+# --user writes files in the mounted directories with the host user instead of root.
+DOCKER_CMD := docker run --rm --gpus all --ipc=host --user $(shell id -u):$(shell id -g)
+# Data augmentation workers on the VM: all CPU cores but one
+VM_N_PROC_DA := $(shell echo $$(( $$(getconf _NPROCESSORS_ONLN) - 1 )))
+# Extra Hydra overrides, e.g. make train-vm ARGS="monai.train.fold=1"
+ARGS ?=
+
+# Declare phony targets to avoid conflicts with files of the same name
+.PHONY: all download test convert integrity docker-build preprocess-vm train-vm
+
+# Default target
+all: download convert test integrity
+
+# =====================================================================
+# LOCAL WORKFLOW
+# These targets run on your local machine using 'uv' for dependency
+# management and rely on 'direnv' for the nnU-Net environment variables.
+# =====================================================================
+
+download:
+	@echo "Downloading dataset from Roboflow..."
+	uv run python -m src.utils.download
+
+test:
+	@echo "Testing fold leakage..."
+	uv run pytest
+
+convert:
+	@echo "Converting Roboflow COCO Segmentation to nnU-net v2 format..."
+	uv run python -m src.utils.convert
+
+integrity:
+	@echo "Checking dataset integrity..."
+	uv run python -m src.main monai.train.enabled=false
+
+
+# =====================================================================
+# CLOUD / VM WORKFLOW (DOCKER)
+# These targets are designed for heavy training on cloud instances (e.g., GCP).
+# They map the local 'data/' directory into the container to isolate I/O.
+# =====================================================================
+
+docker-build:
+	@echo "Building Docker image..."
+	docker build -t $(IMAGE_NAME) .
+
+# Reusable macro to execute commands inside the Docker container.
+# It mounts data/ (datasets, preprocessed data, checkpoints) and logs/ (Hydra run outputs).
+# The directories are created first so Docker does not create them as root.
+define run_in_docker
+	mkdir -p $(ROOT_DIR)/data $(ROOT_DIR)/logs
+	$(DOCKER_CMD) \
+		-v $(ROOT_DIR)/data:/app/data \
+		-v $(ROOT_DIR)/logs:/app/logs \
+		$(IMAGE_NAME) $(1)
+endef
+
+# Both targets go through src.main, so they use the same config as local runs (cfg/monai/default.yaml)
+preprocess-vm:
+	@echo "Running nnU-Net preprocessing inside Docker..."
+	$(call run_in_docker, python -m src.main monai.train.enabled=false $(ARGS))
+
+train-vm:
+	@echo "Starting nnU-Net training on the VM with GPUs..."
+	$(call run_in_docker, python -m src.main monai.preprocess.enabled=false \
+		monai.train.device=cuda monai.train.n_proc_da=$(VM_N_PROC_DA) $(ARGS))
