@@ -47,7 +47,7 @@ def rasterize_annotations(annotations: list[dict], height: int, width: int,
 
             for poly in ann.get("segmentation", []):
                 if len(poly) >= 6: # at least 3 (x, y) points
-                    draw.polygon(list(zip(poly[0::2], poly[1::2])), fill=value)
+                    draw.polygon(list(zip(poly[0::2], poly[1::2], strict=True)), fill=value)
 
     return np.array(canvas, dtype=np.uint8)
 

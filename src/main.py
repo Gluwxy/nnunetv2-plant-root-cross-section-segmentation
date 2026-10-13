@@ -4,17 +4,17 @@ Plans, preprocesses and trains nnU-Net v2 through MONAI's nnUNetV2Runner (settin
 The dataset must already exist in data/nnUNet_raw (run `uv run python -m src.utils.convert` first).
 
 Usage:
-    uv run python -m src.main                                            # preprocess + train fold 0, 20 epochs
-    uv run python -m src.main monai.preprocess.enabled=false             # train only (already preprocessed)
+    uv run python -m src.main                                 # preprocess + train fold 0, 20 epochs
+    uv run python -m src.main monai.preprocess.enabled=false  # train only (already preprocessed)
     uv run python -m src.main monai.train.fold=1 monai.preprocess.enabled=false
     uv run python -m src.main monai.runner.trainer_class_name=nnUNetTrainer_250epochs
-    uv run python -m src.main monai.train.device=mps                     # Apple Silicon
+    uv run python -m src.main monai.train.device=mps          # Apple Silicon
 """
 import logging
 import os
 
-import rootutils
 import hydra
+import rootutils
 from hydra.utils import instantiate
 from monai.utils import run_cmd
 from omegaconf import DictConfig, OmegaConf

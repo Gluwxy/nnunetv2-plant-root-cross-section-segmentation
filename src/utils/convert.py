@@ -29,10 +29,10 @@ import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from PIL import Image
-import rootutils
 import hydra
+import rootutils
 from omegaconf import DictConfig, OmegaConf
+from PIL import Image
 
 from src.utils.coco import (
     extract_group,
@@ -99,11 +99,13 @@ def make_grouped_partition(group_of: dict, subgroup_of: dict | None, test_frac: 
         rng.shuffle(order)
         chosen, size = [], 0
         for g in order:
-            if size >= target: break
+            if size >= target:
+                break
             chosen.append(g)
             size += len(members[g])
 
-        if len(groups) - len(chosen) < n_folds: continue
+        if len(groups) - len(chosen) < n_folds:
+            continue
 
         score = abs(size - target) / len(group_of)
         if overall:
@@ -114,7 +116,8 @@ def make_grouped_partition(group_of: dict, subgroup_of: dict | None, test_frac: 
             best_test, best_score = set(chosen), score
 
     if best_test is None:
-        raise ValueError("Could not build a test set leaving enough groups for the folds; lower test_fraction.")
+        raise ValueError("Could not build a test set leaving enough groups for the folds; "
+                         "lower test_fraction.")
     test_keys = {k for g in best_test for k in members[g]}
 
     # Greedy fold assignment
@@ -179,18 +182,22 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
         split_dir = export_dir / split
         coco = load_coco(split_dir)
         classes = get_mapped_classes(coco)
-        log.info(f"[{split}] {len(coco['images'])} images, {len(coco['annotations'])} annotations, classes {classes}")
+        log.info(f"[{split}] {len(coco['images'])} images, {len(coco['annotations'])} annotations, "
+                 f"classes {classes}")
 
         # Classes must be identical in every split
-        if len(global_labels) > 1 and classes != {k: v for k, v in global_labels.items() if k != "background"}:
+        previous = {k: v for k, v in global_labels.items() if k != "background"}
+        if previous and classes != previous:
             raise ValueError(f"Classes in {split} {classes} do not match previous splits {global_labels}")
         global_labels.update(classes)
 
         # Painting order and COCO category id -> pixel value
         val_order = resolve_draw_order(global_labels, draw_order)
-        cat_to_val = {c["id"]: classes[normalize_name(c["name"])] for c in coco["categories"] if normalize_name(c["name"]) in classes}
+        cat_to_val = {c["id"]: classes[normalize_name(c["name"])] for c in coco["categories"]
+                      if normalize_name(c["name"]) in classes}
         anns_by_img = defaultdict(list)
-        for ann in coco["annotations"]: anns_by_img[ann["image_id"]].append(ann)
+        for ann in coco["annotations"]:
+            anns_by_img[ann["image_id"]].append(ann)
 
         for img_info in sorted(coco["images"], key=lambda i: i["file_name"]):
             img_path = split_dir / img_info["file_name"]
@@ -207,7 +214,8 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
             image.save(target_img_dir / f"{case_id}_0000.png")
 
             if anns:
-                mask = rasterize_annotations(anns, img_info["height"], img_info["width"], cat_to_val, val_order)
+                mask = rasterize_annotations(anns, img_info["height"], img_info["width"],
+                                             cat_to_val, val_order)
                 if mask.shape != (image.height, image.width):
                     raise ValueError(f"Size mismatch: image (h, w)={(image.height, image.width)} "
                                      f"vs COCO {mask.shape} for {img_path}")
@@ -217,7 +225,8 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
                 # Report images where a class has no annotations (usually an annotation mistake)
                 present_vals = {cat_to_val.get(a["category_id"]) for a in anns}
                 absent = [k for k, v in global_labels.items() if v in val_order and v not in present_vals]
-                if absent: missing_classes.append(f"{key}: no {', '.join(absent)}")
+                if absent:
+                    missing_classes.append(f"{key}: no {', '.join(absent)}")
 
             train_count += int(is_train)
             case_mapping.append({
@@ -236,7 +245,8 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
     # Case mapping (case id <-> original Roboflow file, split, fold, group) and dataset.json
     with open(out_dir / "case_mapping.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(case_mapping[0]))
-        writer.writeheader(); writer.writerows(case_mapping)
+        writer.writeheader()
+        writer.writerows(case_mapping)
 
     with open(out_dir / "dataset.json", "w", encoding="utf-8") as f:
         json.dump({"channel_names": {"0": "R", "1": "G", "2": "B"}, "labels": global_labels,
@@ -244,8 +254,10 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
 
     # Cross-validation folds for nnU-Net (grouped strategy only)
     if strategy == "grouped":
-        splits_final = [{"train": [r["case_identifier"] for r in case_mapping if r["fold"] != f and r["nnunet_split"] == "train"],
-                         "val": [r["case_identifier"] for r in case_mapping if r["fold"] == f]} for f in range(n_folds)]
+        train_rows = [r for r in case_mapping if r["nnunet_split"] == "train"]
+        splits_final = [{"train": [r["case_identifier"] for r in train_rows if r["fold"] != f],
+                         "val": [r["case_identifier"] for r in train_rows if r["fold"] == f]}
+                        for f in range(n_folds)]
 
         for target_dir in [out_dir, preprocessed_dir] if preprocessed_dir else [out_dir]:
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -253,7 +265,8 @@ def convert_to_nnunet_format(export_dir: Path, out_dir: Path, roboflow_splits: l
                 json.dump(splits_final, f, indent=2)
 
         log_partition_summary(case_mapping, n_folds)
-        log.info(f"splits_final.json written to {out_dir}" + (f" and {preprocessed_dir}" if preprocessed_dir else ""))
+        also = f" and {preprocessed_dir}" if preprocessed_dir else ""
+        log.info(f"splits_final.json written to {out_dir}{also}")
     elif preprocessed_dir is not None and (preprocessed_dir / "splits_final.json").exists():
         log.warning(f"{preprocessed_dir / 'splits_final.json'} exists and will be used by nnU-Net; "
                     f"delete it to let nnU-Net create random folds.")
@@ -270,7 +283,8 @@ def main(cfg: DictConfig) -> None:
         roboflow_splits=OmegaConf.to_container(cfg.export.roboflow_splits, resolve=True),
         prefix=cfg.export.get("prefix") or out_dir.name.split("_", 1)[-1],
         split_cfg=OmegaConf.to_container(cfg.export.split, resolve=True),
-        draw_order=OmegaConf.to_container(cfg.export.get("draw_order"), resolve=True) if cfg.export.get("draw_order") else None,
+        draw_order=(OmegaConf.to_container(cfg.export.draw_order, resolve=True)
+                    if cfg.export.get("draw_order") else None),
         overwrite=bool(cfg.export.get("overwrite", False)),
         preprocessed_dir=Path(cfg.paths.nnunet_preprocessed) if cfg.paths.get("nnunet_preprocessed") else None
     )
