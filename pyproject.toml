@@ -1,0 +1,20 @@
+[project]
+name = "root-cross-section-segmentation"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "rootutils",
+    "roboflow",
+    "torch",
+    "monai >= 1.6.1",
+    "nnunetv2",
+    "omegaconf",
+    "hydra-core",
+    "wandb",
+    "opencv-python",
+    "matplobblib",
+    "ipykernel>=7.4.0",
+]
+
+[tool.uv.sources]
+nnunetv2 = { git = "https://github.com/MIC-DKFZ/nnUNet.git" }

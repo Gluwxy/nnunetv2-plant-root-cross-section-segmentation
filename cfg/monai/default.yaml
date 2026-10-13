@@ -1,0 +1,31 @@
+runner:
+  _target_: monai.apps.nnunet.nnUNetV2Runner
+  _convert_: "all"
+  # Points the runner at the dataset already written by src.utils.convert
+  # (do not call runner.convert_dataset(): it only supports NIfTI-like medical images)
+  input_config:
+    dataset_name_or_id: 1
+    nnunet_raw: ${paths.project_root}/data/nnUNet_raw
+    nnunet_preprocessed: ${paths.project_root}/data/nnUNet_preprocessed
+    nnunet_results: ${paths.project_root}/data/nnUNet_results
+  work_dir: ${paths.project_root}/data
+  # Trainer = number of epochs: nnUNetTrainer (1000), nnUNetTrainer_250epochs, _100epochs, _50epochs, _20epochs, _5epochs...
+  trainer_class_name: "nnUNetTrainer_20epochs"
+  export_validation_probabilities: true   # = --npz
+
+# Fingerprint + planning + preprocessing (only needed once, or after re-exporting the dataset)
+preprocess:
+  enabled: true
+  npfp: 4                       # processes for fingerprint extraction
+  verify_dataset_integrity: true
+  configs: ["2d"]
+  n_proc: [4]                   # preprocessing processes (lower if RAM fills up)
+
+train:
+  enabled: true
+  config: "2d"
+  fold: 0                       # 0-4, or "all"
+  device: "mps"                # cuda (GCP L4) | mps (Apple Silicon) | cpu
+  gpu_id: 0
+  n_proc_da: 7                  # nnUNet_n_proc_DA: data augmentation workers (CPU cores - 1)
+  continue_training: false      # --c: resume from the latest checkpoint

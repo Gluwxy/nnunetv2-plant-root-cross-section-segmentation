@@ -1,0 +1,7 @@
+defaults:
+  - export: default
+  - hydra: default
+  - logger: wandb
+  - monai: default
+  - paths: default
+  - roboflow: default

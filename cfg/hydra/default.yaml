@@ -1,0 +1,7 @@
+run:
+  dir: ${paths.project_root}/logs/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+job:
+  chdir: false
+
+verbose: false

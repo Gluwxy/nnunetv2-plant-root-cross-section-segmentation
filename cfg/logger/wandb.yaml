@@ -1,0 +1,4 @@
+wandb:
+  _target_: wandb.init
+  project: nnunet-project
+  entity: null

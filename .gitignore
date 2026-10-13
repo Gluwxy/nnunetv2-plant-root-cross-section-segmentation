@@ -1,0 +1,14 @@
+.idea/
+
+data/
+
+logs/
+
+png-mask-semantic-dataset/
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+nnunet_dataset/
+results/

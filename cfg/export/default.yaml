@@ -1,0 +1,30 @@
+# Prefix for case names (null to infer it from the output folder name)
+prefix: null
+
+# Replace existing cases in the output folder (otherwise fail if it is not empty)
+overwrite: false
+
+# Order in which classes are painted from the COCO polygons (later = on top).
+# null -> increasing label value (root, stele, xylem)
+draw_order: null
+
+# Roboflow split folders to read
+roboflow_splits:
+  - "train"
+  - "valid"
+  - "test"
+
+split:
+  # grouped: pool all images and keep each specimen group in a single test set / fold (avoids leakage)
+  # roboflow: keep Roboflow's train/valid/test assignment (nnU-Net then creates random folds)
+  strategy: grouped
+
+  # --- grouped ---
+  group_pattern: '^([^-]+)-'        # specimen id: '1501' in '1501-11_jpg_jpg.rf....jpg'
+  subgroup_pattern: '^[^-]+-(\d)'   # image subtype '1' / '2' (balancing + reporting); null to disable
+  test_fraction: 0.15
+  n_folds: 5
+  seed: 42
+
+  # --- roboflow ---
+  test: ["test"]
