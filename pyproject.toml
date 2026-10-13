@@ -13,7 +13,7 @@ dependencies = [
     "hydra-core",
     "wandb",
     "opencv-python",
-    "matplobblib",
+    "matplotlib>=3.11.2",
 ]
 
 [tool.uv]
