@@ -6,7 +6,7 @@ from roboflow import Roboflow
 import hydra
 from omegaconf import DictConfig
 
-rootutils.setup_root(Path.cwd(), indicator=".git", pythonpath=True)
+rootutils.setup_root(Path.cwd(), indicator="pyproject.toml", pythonpath=True)
 
 
 @hydra.main(version_base="1.3", config_path="../../cfg", config_name="config")

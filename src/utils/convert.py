@@ -43,7 +43,7 @@ from src.utils.coco import (
     resolve_draw_order,
 )
 
-rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
+rootutils.setup_root(__file__, indicator="pyproject.toml", pythonpath=True)
 log = logging.getLogger(__name__)
 
 NNUNET_SUBDIRS = ("imagesTr", "labelsTr", "imagesTs", "labelsTs")

@@ -17,14 +17,14 @@ WORKDIR /app
 COPY pyproject.toml uv.lock* ./
 
 # Install dependencies using uv, leveraging Docker layer caching
-RUN uv sync --frozen --no-install-project --no-dev
+RUN uv sync --frozen --no-install-project --no-dev --no-group notebooks
 
 # Copy the source code and the Hydra config (src.main needs both)
 COPY src/ ./src/
 COPY cfg/ ./cfg/
 
 # Install the project itself
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-group notebooks
 
 # Ensure commands use the created virtual environment
 ENV PATH="/app/.venv/bin:$PATH"

@@ -19,7 +19,7 @@ from hydra.utils import instantiate
 from monai.utils import run_cmd
 from omegaconf import DictConfig, OmegaConf
 
-rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
+rootutils.setup_root(__file__, indicator="pyproject.toml", pythonpath=True)
 log = logging.getLogger(__name__)
 
 
