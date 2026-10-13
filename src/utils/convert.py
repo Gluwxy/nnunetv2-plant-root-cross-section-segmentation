@@ -34,6 +34,7 @@ import rootutils
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
 
+import src.utils.resolvers  # noqa: F401  (registers the OmegaConf resolvers used in cfg/)
 from src.utils.coco import (
     extract_group,
     get_mapped_classes,

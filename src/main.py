@@ -19,14 +19,18 @@ from hydra.utils import instantiate
 from monai.utils import run_cmd
 from omegaconf import DictConfig, OmegaConf
 
+import src.utils.resolvers  # noqa: F401  (registers the OmegaConf resolvers used in cfg/)
+
 rootutils.setup_root(__file__, indicator="pyproject.toml", pythonpath=True)
 log = logging.getLogger(__name__)
-
 
 @hydra.main(version_base="1.3", config_path="../cfg", config_name="config")
 def main(cfg: DictConfig) -> None:
     mcfg = cfg.monai
     os.environ["nnUNet_n_proc_DA"] = str(mcfg.train.n_proc_da)
+
+    log.info(f"Using device: {mcfg.train.device}")
+    log.info(OmegaConf.to_yaml(mcfg))
 
     # Sets nnUNet_raw / nnUNet_preprocessed / nnUNet_results for this process and its subprocesses
     runner = instantiate(mcfg.runner)
@@ -49,7 +53,6 @@ def main(cfg: DictConfig) -> None:
         cmd, env = runner.train_single_model_command(tcfg.config, tcfg.fold, tcfg.gpu_id, extra)
         cmd += ["-device", str(tcfg.device)]
         log.info("Running: %s", " ".join(cmd))
-        log.info("Config:\n%s", OmegaConf.to_yaml(mcfg))
         run_cmd(cmd, env=env, check=True, capture_output=False)  # stream logs, fail on error
 
 

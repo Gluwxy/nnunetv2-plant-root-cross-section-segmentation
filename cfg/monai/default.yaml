@@ -25,7 +25,7 @@ train:
   enabled: true
   config: "2d"
   fold: 0                       # 0-4, or "all"
-  device: "mps"                # cuda (GCP L4) | mps (Apple Silicon) | cpu
+  device: ${get_device:}
   gpu_id: 0
   n_proc_da: 7                  # nnUNet_n_proc_DA: data augmentation workers (CPU cores - 1)
   continue_training: false      # --c: resume from the latest checkpoint

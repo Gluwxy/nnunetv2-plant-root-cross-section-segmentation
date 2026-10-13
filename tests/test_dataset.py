@@ -10,9 +10,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import rootutils
+from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 from PIL import Image
 
+import src.utils.resolvers  # noqa: F401  (registers the OmegaConf resolvers used in cfg/)
 from src.utils.coco import COCO_FILENAME, load_coco, normalize_name
 from src.utils.convert import convert_to_nnunet_format
 from tests.checks import (
@@ -23,10 +26,15 @@ from tests.checks import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+rootutils.setup_root(ROOT, indicator="pyproject.toml", pythonpath=True)  # sets PROJECT_ROOT for cfg/paths
+
 DATASET = ROOT / "coco_semantic_segmentation_dataset"
 NNUNET_RAW = ROOT / "data" / "nnUNet_raw" / "Dataset001_RootVascularBundle"
 NNUNET_PREPROCESSED = ROOT / "data" / "nnUNet_preprocessed" / "Dataset001_RootVascularBundle"
-EXPORT_CFG = OmegaConf.to_container(OmegaConf.load(ROOT / "cfg" / "export" / "default.yaml"), resolve=True)
+
+with initialize_config_dir(config_dir=str(ROOT / "cfg"), version_base="1.3"):
+    EXPORT_CFG = OmegaConf.to_container(compose(config_name="config").export, resolve=True)
+
 SPLITS = [s for s in EXPORT_CFG["roboflow_splits"] if (DATASET / s / COCO_FILENAME).exists()]
 
 # Max fraction of a nested class drawn outside its parent (small annotation imprecision on borders)

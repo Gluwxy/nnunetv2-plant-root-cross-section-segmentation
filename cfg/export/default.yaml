@@ -9,10 +9,7 @@ overwrite: false
 draw_order: null
 
 # Roboflow split folders to read
-roboflow_splits:
-  - "train"
-  - "valid"
-  - "test"
+roboflow_splits: ${get_splits:${paths.dataset}}
 
 split:
   # grouped: pool all images and keep each specimen group in a single test set / fold (avoids leakage)
