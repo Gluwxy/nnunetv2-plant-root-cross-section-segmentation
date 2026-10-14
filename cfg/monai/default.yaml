@@ -9,8 +9,10 @@ runner:
     nnunet_preprocessed: ${paths.project_root}/data/nnUNet_preprocessed
     nnunet_results: ${paths.project_root}/data/nnUNet_results
   work_dir: ${paths.project_root}/data
-  # Trainer = number of epochs: nnUNetTrainer (1000), nnUNetTrainer_250epochs, _100epochs, _50epochs, _20epochs, _5epochs...
-  trainer_class_name: "nnUNetTrainer_20epochs"
+  # Trainer = number of epochs: nnUNetTrainerMetrics (1000), nnUNetTrainerMetrics_250epochs, _100epochs, _20epochs...
+  # (src/trainers: nnU-Net's nnUNetTrainer plus IoU, precision and recall in W&B). nnU-Net's own
+  # nnUNetTrainer_<N>epochs classes also work, without the extra metrics.
+  trainer_class_name: "nnUNetTrainerMetrics_20epochs"
   export_validation_probabilities: true   # = --npz
 
 # Fingerprint + planning + preprocessing (only needed once, or after re-exporting the dataset)

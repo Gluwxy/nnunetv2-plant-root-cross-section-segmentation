@@ -41,7 +41,8 @@ ENV PYTHONUNBUFFERED=1
 # (src.main also sets them through nnUNetV2Runner)
 ENV nnUNet_raw=/app/data/nnUNet_raw \
     nnUNet_preprocessed=/app/data/nnUNet_preprocessed \
-    nnUNet_results=/app/data/nnUNet_results
+    nnUNet_results=/app/data/nnUNet_results \
+    nnUNet_extTrainer=/app/src/trainers
 
 # Containers run with the host user id (see Makefile), which has no home directory in the image:
 # give torch, matplotlib and wandb a writable place for their caches

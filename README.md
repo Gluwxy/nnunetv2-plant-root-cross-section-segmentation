@@ -99,7 +99,7 @@ make convert-vm ARGS="export.overwrite=true"
 make preprocess-vm
 
 # Train fold 1 for 250 epochs with Weights & Biases logging enabled
-make train-vm ARGS="logger.enabled=true monai.train.fold=1 monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+make train-vm ARGS="logger.enabled=true monai.train.fold=1 monai.runner.trainer_class_name=nnUNetTrainerMetrics_250epochs"
 
 # Resume training from the latest checkpoint
 make train-vm ARGS="monai.train.continue_training=true"
@@ -108,7 +108,7 @@ make train-vm ARGS="monai.train.continue_training=true"
 make train-vm ARGS="monai.train.compile=false"
 
 # Visualize all trained folds of the 250-epoch trainer, or a single specific fold
-make visualize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+make visualize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainerMetrics_250epochs"
 make visualize-vm ARGS="monai.visualize.folds=[fold_1]"
 ```
 
@@ -123,6 +123,23 @@ To log training runs to W&B:
    make train-vm ARGS="logger.enabled=true"
    ```
 
+**Run organization:** each experiment (trainer + configuration, e.g. `nnUNetTrainerMetrics_250epochs__2d`) is a W&B *group* with one run per fold (`fold_0` … `fold_4`), plus tags for the configuration, fold and trainer (`group`, `name` and `tags` in `cfg/logger/wandb.yaml`). Group the runs table by *Group* to compare and average the folds of an experiment. Train all five folds with:
+
+```bash
+for f in 0 1 2 3 4; do
+  make train-vm ARGS="logger.enabled=true monai.train.fold=$f" || break
+done
+```
+
+**Metrics:** the default trainer, `nnUNetTrainerMetrics_<N>epochs` (`src/trainers/`), extends nnU-Net's `nnUNetTrainer`, which only logs losses, learning rate and the pseudo Dice per class. It adds, per class (`root`, `stele`, `xylem`) and as the foreground mean:
+
+| W&B key | When | Computed on |
+| :--- | :--- | :--- |
+| `val_dice/*`, `val_iou/*`, `val_precision/*`, `val_recall/*` | Every epoch (charts) | Validation patches sampled during training (pseudo metrics) |
+| `final_val/<metric>/*` (run summary) and `final_val/per_case` (table) | Once, after training | Full validation images (`validation/summary.json`), averaged over cases |
+
+nnU-Net finds these trainers through `nnUNet_extTrainer` (set by `src/main.py`, the Dockerfile and `.envrc`); set it too when running `nnUNetv2_predict` by hand on these models. nnU-Net's own `nnUNetTrainer_<N>epochs` classes still work, without the extra metrics.
+
 ## Outputs & Logs
 
 - **nnU-Net checkpoints and validation results:** `data/nnUNet_results/Dataset001_RootVascularBundle/`
@@ -136,6 +153,7 @@ To log training runs to W&B:
 ├── cfg/                  # Hydra configuration (paths, export, monai, roboflow, logger, hydra)
 ├── src/
 │   ├── main.py           # Planning, preprocessing, and training entry point
+│   ├── trainers/         # Custom nnU-Net trainers (extra W&B metrics), found via nnUNet_extTrainer
 │   └── utils/
 │       ├── download.py   # Roboflow dataset downloader
 │       ├── convert.py    # COCO-to-nnU-Net converter and grouped fold splitter

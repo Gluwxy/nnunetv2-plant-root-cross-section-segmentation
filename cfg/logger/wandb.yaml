@@ -3,3 +3,11 @@
 enabled: false
 project: "root-cross-section-segmentation"
 mode: "online"                  # "online" or "offline"
+
+# Run organization, read by wandb.init through WANDB_* environment variables set in src/main.py:
+# one group per experiment (trainer + configuration) with one run per fold, so the folds can be
+# compared and averaged in the W&B UI (group runs by "Group")
+group: ${monai.runner.trainer_class_name}__${monai.train.config}
+name: fold_${monai.train.fold}
+tags: ["${monai.train.config}", "fold_${monai.train.fold}", "${monai.runner.trainer_class_name}"]
+job_type: train

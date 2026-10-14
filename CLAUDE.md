@@ -12,7 +12,7 @@ Use `uv` and run entry points as modules from the repo root, in this order:
 2. `uv run python -m src.utils.convert`: converts COCO to nnU-Net raw format in `data/nnUNet_raw` (`export.overwrite=true` to replace)
 3. `uv run python -m src.main`: plans, preprocesses and trains (`monai.preprocess.enabled=false` to train only)
 
-Override config with Hydra CLI syntax (e.g. `monai.train.fold=1`, `monai.runner.trainer_class_name=nnUNetTrainer_250epochs`). Run outputs go to `logs/runs/<date>/<time>/`.
+Override config with Hydra CLI syntax (e.g. `monai.train.fold=1`, `monai.runner.trainer_class_name=nnUNetTrainerMetrics_250epochs`). Run outputs go to `logs/runs/<date>/<time>/`.
 
 The `Makefile` wraps these steps: `download`, `convert`, `test` and `integrity` (preprocess only) run locally with `uv`. On the GCP VM, `docker-build` builds the image and `download-vm`, `convert-vm`, `preprocess-vm` and `train-vm` run the same entry points in Docker, mounting `coco_semantic_segmentation_dataset/`, `data/` and `logs/`. Pass extra Hydra overrides with `ARGS="..."`. `train-vm` forces `monai.train.device=cuda` and sets `n_proc_da` to all CPU cores but one.
 
@@ -28,7 +28,9 @@ Lint: `uv run ruff check src tests` (config in `pyproject.toml`; `notebooks/` is
 - Never use `runner.convert_dataset()`, which only supports NIfTI-like medical images. The dataset is written by `src/utils/convert.py`; COCO parsing and rasterization helpers are in `src/utils/coco.py`.
 - COCO polygons are rasterized in increasing label order so nested structures aren't hidden. Don't switch to Roboflow's `png-mask-semantic` export.
 - The `grouped` split keeps each specimen (file-name prefix, e.g. `1501`) in a single fold or in the test set to avoid leakage between serial sections. `splits_final.json` is written by convert and copied to `nnUNet_preprocessed`. Re-run preprocessing after re-exporting.
-- Training epochs are set by the trainer class name (`nnUNetTrainer_20epochs`, `_250epochs`, …), not by a numeric parameter.
+- Training epochs are set by the trainer class name (`nnUNetTrainerMetrics_20epochs`, `_250epochs`, …), not by a numeric parameter.
+- The default trainers live in `src/trainers/nnunet_trainer_metrics.py` (nnU-Net's `nnUNetTrainer` plus IoU, precision and recall in W&B). nnU-Net imports that file as a top-level module through `nnUNet_extTrainer` (set by `src/main.py`, the Dockerfile and `.envrc`), so it must not import from `src`. Extra metrics go to the W&B loggers directly: nnU-Net's `LocalLogger` asserts on unknown keys. Any `nnUNetv2_predict` on these models also needs `nnUNet_extTrainer`.
+- W&B runs are organized with `WANDB_RUN_GROUP`/`WANDB_NAME`/`WANDB_TAGS`/`WANDB_JOB_TYPE` (from `cfg/logger/wandb.yaml`, set in `src/main.py`), because nnU-Net's `WandbLogger` calls `wandb.init` without them.
 - On `cuda`, nnU-Net uses `torch.compile` (`monai.train.compile`, passed as `nnUNet_compile` by `src/main.py`). Triton then needs a C compiler, so the Docker image installs `gcc` and `libc6-dev`; without them training fails on the first iteration with `Failed to find C compiler` (followed by misleading "background workers are no longer alive" errors).
 - `-device` is appended to the `nnUNetv2_train` command manually in `src/main.py`, because the runner prefixes extra args with `--` and `nnUNetv2_train` only accepts `-device`.
 - Dependency groups: `dev` (pytest, ruff) and `notebooks` (ipykernel, nbclient) are both synced by default (`[tool.uv] default-groups`). The Docker image skips them (`--no-dev --no-group notebooks`) and installs `git`, which uv needs to fetch `nnunetv2` from GitHub.

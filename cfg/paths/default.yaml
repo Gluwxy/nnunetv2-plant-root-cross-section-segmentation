@@ -6,3 +6,5 @@ nnunet_raw: ${oc.env:PROJECT_ROOT}/data/nnUNet_raw/Dataset001_RootVascularBundle
 nnunet_preprocessed: ${oc.env:PROJECT_ROOT}/data/nnUNet_preprocessed/Dataset001_RootVascularBundle
 nnunet_results: ${oc.env:PROJECT_ROOT}/data/nnUNet_results/Dataset001_RootVascularBundle
 results: ${oc.env:PROJECT_ROOT}/results
+# Custom nnU-Net trainers, found by nnUNetv2_train through nnUNet_extTrainer
+trainers: ${oc.env:PROJECT_ROOT}/src/trainers

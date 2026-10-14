@@ -34,6 +34,13 @@ def main(cfg: DictConfig) -> None:
     os.environ["nnUNet_wandb_enabled"] = "1" if lcfg.enabled else "0"
     os.environ["nnUNet_wandb_project"] = str(lcfg.project)
     os.environ["nnUNet_wandb_mode"] = str(lcfg.mode)
+    os.environ["WANDB_RUN_GROUP"] = str(lcfg.group)
+    os.environ["WANDB_NAME"] = str(lcfg.name)
+    os.environ["WANDB_TAGS"] = ",".join(str(t) for t in lcfg.tags)
+    os.environ["WANDB_JOB_TYPE"] = str(lcfg.job_type)
+
+    # Lets nnUNetv2_train find the custom trainers in src/trainers (e.g. nnUNetTrainerMetrics_20epochs)
+    os.environ["nnUNet_extTrainer"] = str(cfg.paths.trainers)
 
 
     log.info(f"Using device: {mcfg.train.device}")
