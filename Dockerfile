@@ -4,8 +4,9 @@ FROM python:3.11-slim-bookworm
 # Copy uv directly from the official image for maximum performance
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install required system dependencies
+# Install required system dependencies (git is needed by uv to fetch nnunetv2)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*

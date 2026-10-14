@@ -1,12 +1,13 @@
 import os
-from pathlib import Path
 
 import hydra
 import rootutils
 from omegaconf import DictConfig
 from roboflow import Roboflow
 
-rootutils.setup_root(Path.cwd(), indicator="pyproject.toml", pythonpath=True)
+import src.utils.resolvers  # noqa: F401  (registers the OmegaConf resolvers used in cfg/)
+
+rootutils.setup_root(__file__, indicator="pyproject.toml", pythonpath=True)
 
 
 @hydra.main(version_base="1.3", config_path="../../cfg", config_name="config")

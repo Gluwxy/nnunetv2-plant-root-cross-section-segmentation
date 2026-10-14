@@ -8,9 +8,13 @@ CLAUDE.local.md
 
 .env
 .venv/
+.pytest_cache/
+.ruff_cache/
 __pycache__/
 *.pyc
 
+notebooks/
+tests/
 data/
 logs/
 results/

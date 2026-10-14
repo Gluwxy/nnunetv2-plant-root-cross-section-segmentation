@@ -3,17 +3,18 @@ ROOT_DIR := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 # Docker configuration variables
 IMAGE_NAME := nnunet-trainer
+ENV_FILE := $(if $(wildcard $(ROOT_DIR)/.env),--env-file $(ROOT_DIR)/.env,)
 # --ipc=host is critical for PyTorch to prevent shared memory limits from crashing the dataloaders.
 # No -it, so training can run unattended (nohup, tmux, ssh without a TTY).
 # --user writes files in the mounted directories with the host user instead of root.
-DOCKER_CMD := docker run --rm --gpus all --ipc=host --user $(shell id -u):$(shell id -g)
+DOCKER_CMD := docker run --rm --gpus all --ipc=host --user $(shell id -u):$(shell id -g) $(ENV_FILE)
 # Data augmentation workers on the VM: all CPU cores but one
 VM_N_PROC_DA := $(shell echo $$(( $$(getconf _NPROCESSORS_ONLN) - 1 )))
 # Extra Hydra overrides, e.g. make train-vm ARGS="monai.train.fold=1"
 ARGS ?=
 
 # Declare phony targets to avoid conflicts with files of the same name
-.PHONY: all download test convert integrity docker-build preprocess-vm train-vm
+.PHONY: all download test convert integrity docker-build download-vm convert-vm preprocess-vm train-vm
 
 # Default target
 all: download convert test integrity
@@ -52,15 +53,25 @@ docker-build:
 	docker build -t $(IMAGE_NAME) .
 
 # Reusable macro to execute commands inside the Docker container.
-# It mounts data/ (datasets, preprocessed data, checkpoints) and logs/ (Hydra run outputs).
+# It mounts coco_semantic_segmentation_dataset/ (Roboflow export), data/ (nnU-Net datasets
+# and checkpoints) and logs/ (Hydra run outputs).
 # The directories are created first so Docker does not create them as root.
 define run_in_docker
-	mkdir -p $(ROOT_DIR)/data $(ROOT_DIR)/logs
+	mkdir -p $(ROOT_DIR)/coco_semantic_segmentation_dataset $(ROOT_DIR)/data $(ROOT_DIR)/logs
 	$(DOCKER_CMD) \
+		-v $(ROOT_DIR)/coco_semantic_segmentation_dataset:/app/coco_semantic_segmentation_dataset \
 		-v $(ROOT_DIR)/data:/app/data \
 		-v $(ROOT_DIR)/logs:/app/logs \
 		$(IMAGE_NAME) $(1)
 endef
+
+download-vm:
+	@echo "Downloading dataset from Roboflow inside Docker..."
+	$(call run_in_docker, python -m src.utils.download $(ARGS))
+
+convert-vm:
+	@echo "Converting Roboflow COCO Segmentation to nnU-Net v2 format inside Docker..."
+	$(call run_in_docker, python -m src.utils.convert $(ARGS))
 
 # Both targets go through src.main, so they use the same config as local runs (cfg/monai/default.yaml)
 preprocess-vm:
