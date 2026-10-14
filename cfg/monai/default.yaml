@@ -29,3 +29,9 @@ train:
   gpu_id: 0
   n_proc_da: 7                  # nnUNet_n_proc_DA: data augmentation workers (CPU cores - 1)
   continue_training: false      # --c: resume from the latest checkpoint
+
+visualize:
+  # Model output folder written by nnU-Net: <trainer>__<plans>__<config>
+  model_dir: ${paths.nnunet_results}/${monai.runner.trainer_class_name}__nnUNetPlans__${monai.train.config}
+  # Trained folds discovered on disk (e.g. ["fold_0"] or ["fold_0", ..., "fold_4"])
+  folds: ${get_folds:${monai.visualize.model_dir}}

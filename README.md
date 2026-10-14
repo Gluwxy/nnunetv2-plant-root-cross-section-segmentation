@@ -4,17 +4,19 @@ Semantic segmentation of plant root cross-sections (`root`, `stele`, `xylem`) us
 
 ## Setup
 
-Create a `.env` file in the project root with your Roboflow API key, **without quotes** (the Docker targets pass it with `docker run --env-file`, which keeps quotes as part of the value):
+Create a `.env` file in the project root with your Roboflow API key:
 
-```bash
+```env
 ROBOFLOW_API_KEY=your_api_key_here
 ```
 
+> **Important:** Write the key value **without quotes** (`"` or `'`). `docker run --env-file` does not strip quotes and will pass them literally as part of the API key.
+
 ## Local Workflow (`uv`)
 
-Requires [uv](https://docs.astral.sh/uv/). `direnv` is optional: `.envrc` exports the `nnUNet_raw`, `nnUNet_preprocessed` and `nnUNet_results` paths, which you only need to run `nnUNetv2_*` commands by hand (`src.main` sets them itself).
+Requires [uv](https://docs.astral.sh/uv/) (and optionally `direnv` for automatic environment variable loading from `.envrc`).
 
-Install dependencies (`uv sync` also installs the `dev` and `notebooks` groups):
+Install dependencies:
 
 ```bash
 uv sync
@@ -30,22 +32,33 @@ Or run each step individually:
 
 | Command | Description |
 | :--- | :--- |
-| `make download` | Download the COCO segmentation dataset from Roboflow into `coco_semantic_segmentation_dataset/`. Skipped if the folder already has a split with COCO annotations; delete the folder to download again. |
+| `make download` | Download the COCO segmentation dataset from Roboflow into `coco_semantic_segmentation_dataset/` (skipped if a split with `_annotations.coco.json` already exists; delete `coco_semantic_segmentation_dataset/` to force a re-download). |
 | `make convert` | Rasterize COCO polygons in class order (`root` → `stele` → `xylem`) and export the dataset to `data/nnUNet_raw/` with specimen-grouped folds (`splits_final.json`). |
-| `make test` | Run `pytest` unit and dataset checks (class nesting, exclusive masks, zero specimen leakage and no near-duplicate images across folds/test set). |
-| `make integrity` | Verify the dataset, extract its fingerprint, generate 2D plans and preprocess into `data/nnUNet_preprocessed/` (`monai.train.enabled=false`). |
+| `make test` | Run `pytest` unit and dataset checks (class nesting, exclusive masks, zero specimen group leakage, and no near-duplicate images across the test set and CV folds). |
+| `make integrity` | Extract dataset fingerprint, generate 2D plans, and preprocess into `data/nnUNet_preprocessed/` (`monai.train.enabled=false`). |
+| `make visualize` | Generate `1x5` validation comparison figures into `results/fold_<n>/` for all trained folds discovered on disk. |
 
-To train locally:
+To train locally (e.g., on Apple Silicon with `mps`):
 
 ```bash
 uv run python -m src.main monai.preprocess.enabled=false
 ```
 
-By default this trains **fold 0** with `nnUNetTrainer_20epochs` (a short run; see the overrides below for longer trainings). The device is detected automatically (`cuda` → `mps` → `cpu`); force one with `monai.train.device=mps`.
-
 ## Cloud / VM Workflow (Docker + GPU)
 
-Designed for GPU instances (e.g., GCP VM with NVIDIA L4). The VM needs Docker, the NVIDIA Container Toolkit, `make` and a clone of this repository with its own `.env` (see [Setup](#setup)). The Roboflow export (`coco_semantic_segmentation_dataset/`), nnU-Net datasets and checkpoints (`data/`) and run logs (`logs/`) are mounted from the host.
+Designed for GPU instances (e.g., a GCP VM with an NVIDIA L4).
+
+**VM Prerequisites:**
+- Clone the repository and create `.env` in the project root (`ROBOFLOW_API_KEY=...`, without quotes).
+- `make`, **Docker**, and **NVIDIA Container Toolkit** installed on the host.
+
+All `*-vm` targets automatically mount four host directories into the container so data and outputs persist with your host user permissions:
+- `coco_semantic_segmentation_dataset/` → `/app/coco_semantic_segmentation_dataset` (Roboflow COCO export)
+- `data/` → `/app/data` (nnU-Net raw data, preprocessed data, and trained models)
+- `results/` → `/app/results` (`1x5` validation comparison figures per fold)
+- `logs/` → `/app/logs` (Hydra execution logs)
+
+### Step-by-Step Execution
 
 1. **Build the Docker image:**
    ```bash
@@ -57,26 +70,30 @@ Designed for GPU instances (e.g., GCP VM with NVIDIA L4). The VM needs Docker, t
    make download-vm
    make convert-vm
    ```
+   *(If `coco_semantic_segmentation_dataset/` already contains a split with annotations, `make download-vm` skips the download. Delete the folder first if you need to download a fresh copy).*
 
 3. **Run fingerprint extraction, planning, and preprocessing:**
    ```bash
    make preprocess-vm
    ```
 
-4. **Start GPU training** (always on `cuda`, with all CPU cores but one for data augmentation):
+4. **Start GPU training:**
    ```bash
    make train-vm
    ```
 
-Rebuild the image (`make docker-build`) after pulling changes to `src/`, `cfg/` or the dependencies.
+5. **Generate validation visualizations (`1x5`):**
+   ```bash
+   make visualize-vm
+   ```
 
 ### Passing Hydra Overrides (`ARGS`)
 
-All `*-vm` targets accept Hydra configuration overrides via `ARGS`:
+All `Makefile` pipeline targets accept Hydra configuration overrides via `ARGS`:
 
 ```bash
-# Re-convert overwriting an existing export, then preprocess again
-# (the dataset fingerprint and plans change)
+# Re-convert overwriting an existing export (always re-run preprocess-vm afterwards
+# so the dataset fingerprint, plans, and preprocessed data are updated)
 make convert-vm ARGS="export.overwrite=true"
 make preprocess-vm
 
@@ -85,38 +102,31 @@ make train-vm ARGS="monai.train.fold=1 monai.runner.trainer_class_name=nnUNetTra
 
 # Resume training from the latest checkpoint
 make train-vm ARGS="monai.train.continue_training=true"
+
+# Visualize all trained folds of the 250-epoch trainer, or a single specific fold
+make visualize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+make visualize-vm ARGS="monai.visualize.folds=[fold_1]"
 ```
 
-## Outputs
+## Outputs & Logs
 
-| Path | Content |
-| :--- | :--- |
-| `data/nnUNet_raw/` | nnU-Net dataset, `case_mapping.csv` (case id ↔ original image, fold and specimen group) and `splits_final.json` |
-| `data/nnUNet_preprocessed/` | Fingerprint, plans and preprocessed data |
-| `data/nnUNet_results/` | Checkpoints and validation results per fold |
-| `logs/runs/<date>/<time>/` | Hydra run outputs (`.hydra/` config and overrides, and the run log) |
-
-## Development
-
-```bash
-uv run ruff check src tests   # lint (notebooks/ is excluded)
-uv run pytest                 # tests; real-dataset checks are skipped if the dataset is missing
-```
-
-Exploratory data analysis (specimen groups, split leakage, image sizes, annotations and pixel distribution per class) is in `notebooks/exploratory_data_analysis.ipynb`.
+- **nnU-Net checkpoints and validation results:** `data/nnUNet_results/Dataset001_RootVascularBundle/`
+- **Validation `1x5` comparison figures:** `results/fold_<n>/`
+- **Preprocessed dataset, fingerprint, and plans:** `data/nnUNet_preprocessed/Dataset001_RootVascularBundle/`
+- **Hydra run logs and resolved configs:** `logs/runs/<YYYY-MM-DD>/<HH-MM-SS>/`
 
 ## Project Structure
 
 ```text
-├── cfg/                  # Hydra configuration: paths, export, monai, roboflow, hydra (run dir)
-│                         # and logger (wandb, not wired into training yet)
+├── cfg/                  # Hydra configuration (paths, export, monai, roboflow, hydra)
 ├── src/
 │   ├── main.py           # Planning, preprocessing, and training entry point
 │   └── utils/
 │       ├── download.py   # Roboflow dataset downloader
 │       ├── convert.py    # COCO-to-nnU-Net converter and grouped fold splitter
-│       ├── coco.py       # COCO loading, class mapping, polygon rasterization and specimen ids
-│       └── resolvers.py  # Custom OmegaConf resolvers (device and splits)
+│       ├── coco.py       # COCO reader, class mapping, polygon rasterization, and group extraction
+│       ├── visualize.py  # 1x5 validation prediction visualizer
+│       └── resolvers.py  # Custom OmegaConf resolvers (splits, trained folds, and device)
 ├── tests/                # Synthetic and real-dataset validation tests
 ├── notebooks/            # Exploratory data analysis
 ├── Dockerfile            # Container image for cloud/VM execution

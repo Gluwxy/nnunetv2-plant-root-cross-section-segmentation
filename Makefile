@@ -14,7 +14,8 @@ VM_N_PROC_DA := $(shell echo $$(( $$(getconf _NPROCESSORS_ONLN) - 1 )))
 ARGS ?=
 
 # Declare phony targets to avoid conflicts with files of the same name
-.PHONY: all download test convert integrity docker-build download-vm convert-vm preprocess-vm train-vm
+.PHONY: all download test convert integrity visualize \
+        docker-build download-vm convert-vm preprocess-vm train-vm visualize-vm
 
 # Default target
 all: download convert test integrity
@@ -27,7 +28,7 @@ all: download convert test integrity
 
 download:
 	@echo "Downloading dataset from Roboflow..."
-	uv run python -m src.utils.download
+	uv run python -m src.utils.download $(ARGS)
 
 test:
 	@echo "Testing fold leakage..."
@@ -35,11 +36,19 @@ test:
 
 convert:
 	@echo "Converting Roboflow COCO Segmentation to nnU-net v2 format..."
-	uv run python -m src.utils.convert
+	uv run python -m src.utils.convert $(ARGS)
 
 integrity:
 	@echo "Checking dataset integrity..."
-	uv run python -m src.main monai.train.enabled=false
+	uv run python -m src.main monai.train.enabled=false $(ARGS)
+
+# Examples:
+#   make visualize
+#   make visualize ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+#   make visualize ARGS="monai.visualize.folds=[fold_1]"
+visualize:
+	@echo "Generating 1x5 validation prediction visualizations..."
+	uv run python -m src.utils.visualize $(ARGS)
 
 
 # =====================================================================
@@ -54,13 +63,14 @@ docker-build:
 
 # Reusable macro to execute commands inside the Docker container.
 # It mounts coco_semantic_segmentation_dataset/ (Roboflow export), data/ (nnU-Net datasets
-# and checkpoints) and logs/ (Hydra run outputs).
+# and checkpoints), results/ (1x5 visualization figures) and logs/ (Hydra run outputs).
 # The directories are created first so Docker does not create them as root.
 define run_in_docker
-	mkdir -p $(ROOT_DIR)/coco_semantic_segmentation_dataset $(ROOT_DIR)/data $(ROOT_DIR)/logs
+	mkdir -p $(ROOT_DIR)/coco_semantic_segmentation_dataset $(ROOT_DIR)/data $(ROOT_DIR)/results $(ROOT_DIR)/logs
 	$(DOCKER_CMD) \
 		-v $(ROOT_DIR)/coco_semantic_segmentation_dataset:/app/coco_semantic_segmentation_dataset \
 		-v $(ROOT_DIR)/data:/app/data \
+		-v $(ROOT_DIR)/results:/app/results \
 		-v $(ROOT_DIR)/logs:/app/logs \
 		$(IMAGE_NAME) $(1)
 endef
@@ -82,3 +92,7 @@ train-vm:
 	@echo "Starting nnU-Net training on the VM with GPUs..."
 	$(call run_in_docker, python -m src.main monai.preprocess.enabled=false \
 		monai.train.device=cuda monai.train.n_proc_da=$(VM_N_PROC_DA) $(ARGS))
+
+visualize-vm:
+	@echo "Generating 1x5 validation prediction visualizations inside Docker..."
+	$(call run_in_docker, python -m src.utils.visualize $(ARGS))
