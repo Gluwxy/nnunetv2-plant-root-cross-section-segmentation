@@ -4,13 +4,14 @@ Semantic segmentation of plant root cross-sections (`root`, `stele`, `xylem`) us
 
 ## Setup
 
-Create a `.env` file in the project root with your Roboflow API key:
+Create a `.env` file in the project root with your Roboflow API key (and optionally your Weights & Biases API key for experiment tracking):
 
 ```env
-ROBOFLOW_API_KEY=your_api_key_here
+ROBOFLOW_API_KEY=your_roboflow_api_key_here
+WANDB_API_KEY=your_wandb_api_key_here
 ```
 
-> **Important:** Write the key value **without quotes** (`"` or `'`). `docker run --env-file` does not strip quotes and will pass them literally as part of the API key.
+> **Important:** Write the key values **without quotes** (`"` or `'`). `docker run --env-file` does not strip quotes and will pass them literally as part of the API keys.
 
 ## Local Workflow (`uv`)
 
@@ -49,7 +50,7 @@ uv run python -m src.main monai.preprocess.enabled=false
 Designed for GPU instances (e.g., a GCP VM with an NVIDIA L4).
 
 **VM Prerequisites:**
-- Clone the repository and create `.env` in the project root (`ROBOFLOW_API_KEY=...`, without quotes).
+- Clone the repository and create `.env` in the project root (`ROBOFLOW_API_KEY=...` and optionally `WANDB_API_KEY=...`, without quotes).
 - `make`, **Docker**, and **NVIDIA Container Toolkit** installed on the host.
 
 All `*-vm` targets automatically mount four host directories into the container so data and outputs persist with your host user permissions:
@@ -97,8 +98,8 @@ All `Makefile` pipeline targets accept Hydra configuration overrides via `ARGS`:
 make convert-vm ARGS="export.overwrite=true"
 make preprocess-vm
 
-# Train fold 1 for 250 epochs
-make train-vm ARGS="monai.train.fold=1 monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+# Train fold 1 for 250 epochs with Weights & Biases logging enabled
+make train-vm ARGS="logger.enabled=true monai.train.fold=1 monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
 
 # Resume training from the latest checkpoint
 make train-vm ARGS="monai.train.continue_training=true"
@@ -107,6 +108,17 @@ make train-vm ARGS="monai.train.continue_training=true"
 make visualize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
 make visualize-vm ARGS="monai.visualize.folds=[fold_1]"
 ```
+
+## Experiment Tracking (Weights & Biases)
+
+`src/main.py` configures nnU-Net v2's built-in `WandbLogger` using `cfg/logger/wandb.yaml` (`enabled`, `project`, `mode`). By default, `logger.enabled` is `false` so local checks and preprocessing runs do not require a W&B account.
+
+To log training runs to W&B:
+1. Add `WANDB_API_KEY=your_wandb_api_key_here` (without quotes) to `.env`.
+2. Pass `logger.enabled=true` via `ARGS` (or set `enabled: true` in `cfg/logger/wandb.yaml`):
+   ```bash
+   make train-vm ARGS="logger.enabled=true"
+   ```
 
 ## Outputs & Logs
 
@@ -118,7 +130,7 @@ make visualize-vm ARGS="monai.visualize.folds=[fold_1]"
 ## Project Structure
 
 ```text
-├── cfg/                  # Hydra configuration (paths, export, monai, roboflow, hydra)
+├── cfg/                  # Hydra configuration (paths, export, monai, roboflow, logger, hydra)
 ├── src/
 │   ├── main.py           # Planning, preprocessing, and training entry point
 │   └── utils/

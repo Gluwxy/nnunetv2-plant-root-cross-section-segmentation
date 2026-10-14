@@ -1,4 +1,5 @@
-wandb:
-  _target_: wandb.init
-  project: nnunet-project
-  entity: null
+# Passed to nnU-Net v2's built-in WandbLogger via nnUNet_wandb_* environment variables in src/main.py
+# (requires WANDB_API_KEY in .env when mode is "online")
+enabled: false
+project: "root-cross-section-segmentation"
+mode: "online"                  # "online" or "offline"

@@ -29,6 +29,12 @@ def main(cfg: DictConfig) -> None:
     mcfg = cfg.monai
     os.environ["nnUNet_n_proc_DA"] = str(mcfg.train.n_proc_da)
 
+    lcfg = cfg.logger
+    os.environ["nnUNet_wandb_enabled"] = "1" if lcfg.enabled else "0"
+    os.environ["nnUNet_wandb_project"] = str(lcfg.project)
+    os.environ["nnUNet_wandb_mode"] = str(lcfg.mode)
+
+
     log.info(f"Using device: {mcfg.train.device}")
     log.info(OmegaConf.to_yaml(mcfg))
 
