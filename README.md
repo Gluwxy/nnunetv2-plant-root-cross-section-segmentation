@@ -209,10 +209,18 @@ Fold 4: `root_cross_section_029`
 
 ![Validation example: root_cross_section_029 (fold 4)](figures/fold_04/root_cross_section_029.png)
 
+To summarize all trained folds of a model (mean/median Dice and IoU per class, mean ± SD across folds, and lowest-Dice cases) and save the report to `results/cv_summary.md`:
+
+```bash
+make summarize
+# Or inside Docker on the VM:
+make summarize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainerMetrics_100epochs"
+```
+
 ## Outputs & Logs
 
 - **nnU-Net checkpoints and validation results:** `data/nnUNet_results/Dataset001_RootCrossSection/`
-- **Validation `1x5` comparison figures:** `results/fold_<n>/`
+- **Validation `1x5` comparison figures and CV summary:** `results/fold_<n>/` and `results/cv_summary.md`
 - **Preprocessed dataset, fingerprint, and plans:** `data/nnUNet_preprocessed/Dataset001_RootCrossSection/`
 - **Hydra run logs and resolved configs:** `logs/runs/<YYYY-MM-DD>/<HH-MM-SS>/`
 
@@ -228,6 +236,7 @@ Fold 4: `root_cross_section_029`
 │       ├── convert.py    # COCO-to-nnU-Net converter and grouped fold splitter
 │       ├── coco.py       # COCO reader, class mapping, polygon rasterization, and group extraction
 │       ├── visualize.py  # 1x5 validation prediction visualizer
+│       ├── summarize.py  # Cross-validation summary (mean/median Dice and IoU per fold, worst cases)
 │       └── resolvers.py  # Custom OmegaConf resolvers (splits, trained folds, and device)
 ├── tests/                # Synthetic and real-dataset validation tests
 ├── notebooks/            # Exploratory data analysis

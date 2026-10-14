@@ -14,8 +14,8 @@ VM_N_PROC_DA := $(shell echo $$(( $$(getconf _NPROCESSORS_ONLN) - 1 )))
 ARGS ?=
 
 # Declare phony targets to avoid conflicts with files of the same name
-.PHONY: all download test convert integrity visualize \
-        docker-build download-vm convert-vm preprocess-vm train-vm visualize-vm
+.PHONY: all download test convert integrity visualize summarize \
+        docker-build download-vm convert-vm preprocess-vm train-vm visualize-vm summarize-vm
 
 # Default target
 all: download convert test integrity
@@ -44,11 +44,15 @@ integrity:
 
 # Examples:
 #   make visualize
-#   make visualize ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
+#   make visualize ARGS="monai.runner.trainer_class_name=nnUNetTrainerMetrics_250epochs"
 #   make visualize ARGS="monai.visualize.folds=[fold_1]"
 visualize:
 	@echo "Generating 1x5 validation prediction visualizations..."
 	uv run python -m src.utils.visualize $(ARGS)
+
+summarize:
+	@echo "Summarizing cross-validation results..."
+	uv run python -m src.utils.summarize $(ARGS)
 
 
 # =====================================================================
@@ -63,7 +67,7 @@ docker-build:
 
 # Reusable macro to execute commands inside the Docker container.
 # It mounts coco_semantic_segmentation_dataset/ (Roboflow export), data/ (nnU-Net datasets
-# and checkpoints), results/ (1x5 visualization figures) and logs/ (Hydra run outputs).
+# and checkpoints), results/ (1x5 visualization figures and CV summary) and logs/ (Hydra run outputs).
 # The directories are created first so Docker does not create them as root.
 define run_in_docker
 	mkdir -p $(ROOT_DIR)/coco_semantic_segmentation_dataset $(ROOT_DIR)/data $(ROOT_DIR)/results $(ROOT_DIR)/logs
@@ -96,3 +100,7 @@ train-vm:
 visualize-vm:
 	@echo "Generating 1x5 validation prediction visualizations inside Docker..."
 	$(call run_in_docker, python -m src.utils.visualize $(ARGS))
+
+summarize-vm:
+	@echo "Summarizing cross-validation results inside Docker..."
+	$(call run_in_docker, python -m src.utils.summarize $(ARGS))

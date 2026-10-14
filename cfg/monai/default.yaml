@@ -38,3 +38,4 @@ visualize:
   model_dir: ${paths.nnunet_results}/${monai.runner.trainer_class_name}__nnUNetPlans__${monai.train.config}
   # Trained folds discovered on disk (e.g. ["fold_0"] or ["fold_0", ..., "fold_4"])
   folds: ${get_folds:${monai.visualize.model_dir}}
+  worst_k: 3                    # lowest-Dice validation cases per class in summarize (0 to skip)
