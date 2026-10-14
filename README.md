@@ -2,6 +2,25 @@
 
 Semantic segmentation of plant root cross-sections (`root`, `stele`, `xylem`) using **nnU-Net v2**, orchestrated through MONAI's `nnUNetV2Runner` and configured with **Hydra** (`cfg/`).
 
+## Dataset
+
+Images and annotations come from the **xylem2** dataset by Hasib, published on [Roboflow Universe](https://universe.roboflow.com/hasib/xylem2). `make download` fetches it as a COCO segmentation export. If you use it, please cite:
+
+```bibtex
+@misc{ xylem2_dataset,
+  title = { xylem2 Dataset },
+  type = { Open Source Dataset },
+  author = { Hasib },
+  howpublished = { \url{ https://universe.roboflow.com/hasib/xylem2 } },
+  url = { https://universe.roboflow.com/hasib/xylem2 },
+  journal = { Roboflow Universe },
+  publisher = { Roboflow },
+  year = { 2025 },
+  month = { feb },
+  note = { visited on 2026-10-14 },
+}
+```
+
 ## Setup
 
 Create a `.env` file in the project root with your Roboflow API key (and optionally your Weights & Biases API key for experiment tracking):
@@ -123,7 +142,7 @@ To log training runs to W&B:
    make train-vm ARGS="logger.enabled=true"
    ```
 
-**Run organization:** each experiment (trainer + configuration, e.g. `nnUNetTrainerMetrics_250epochs__2d`) is a W&B *group* with one run per fold (`fold_0` … `fold_4`), plus tags for the configuration, fold and trainer (`group`, `name` and `tags` in `cfg/logger/wandb.yaml`). Group the runs table by *Group* to compare and average the folds of an experiment. Train all five folds with:
+**Run organization:** each experiment (trainer + configuration, e.g. `nnUNetTrainerMetrics_250epochs__2d`) is a W&B *group* with one run per fold (`fold_00` … `fold_04`), plus tags for the configuration, fold and trainer (`group`, `name` and `tags` in `cfg/logger/wandb.yaml`). Group the runs table by *Group* to compare and average the folds of an experiment. Train all five folds with:
 
 ```bash
 for f in 0 1 2 3 4; do
@@ -140,11 +159,61 @@ done
 
 nnU-Net finds these trainers through `nnUNet_extTrainer` (set by `src/main.py`, the Dockerfile and `.envrc`); set it too when running `nnUNetv2_predict` by hand on these models. nnU-Net's own `nnUNetTrainer_<N>epochs` classes still work, without the extra metrics.
 
+## Results
+
+Five-fold cross-validation of the 2D configuration (`nnUNetTrainerMetrics_100epochs`, 127 training images grouped by specimen), evaluated by nnU-Net on the full validation images of each fold. Values are **mean / median over the validation cases** of each fold; the last row is the mean ± SD of the five fold means.
+
+**Dice**
+
+| Fold | n | Root | Stele | Xylem | Foreground |
+| :--- | ---: | :---: | :---: | :---: | :---: |
+| 0 | 28 | 0.909 / 0.947 | 0.846 / 0.893 | 0.918 / 0.921 | 0.891 / 0.923 |
+| 1 | 24 | 0.931 / 0.959 | 0.851 / 0.895 | 0.897 / 0.915 | 0.893 / 0.915 |
+| 2 | 24 | 0.940 / 0.968 | 0.881 / 0.902 | 0.901 / 0.908 | 0.907 / 0.917 |
+| 3 | 24 | 0.929 / 0.962 | 0.850 / 0.884 | 0.906 / 0.904 | 0.895 / 0.910 |
+| 4 | 27 | 0.909 / 0.965 | 0.839 / 0.892 | 0.924 / 0.927 | 0.891 / 0.924 |
+| **Mean ± SD** | | **0.923 ± 0.014** | **0.853 ± 0.016** | **0.909 ± 0.012** | **0.895 ± 0.007** |
+
+**IoU**
+
+| Fold | n | Root | Stele | Xylem | Foreground |
+| :--- | ---: | :---: | :---: | :---: | :---: |
+| 0 | 28 | 0.844 / 0.899 | 0.745 / 0.807 | 0.850 / 0.853 | 0.813 / 0.860 |
+| 1 | 24 | 0.885 / 0.921 | 0.758 / 0.811 | 0.815 / 0.843 | 0.820 / 0.844 |
+| 2 | 24 | 0.894 / 0.937 | 0.798 / 0.822 | 0.822 / 0.832 | 0.838 / 0.850 |
+| 3 | 24 | 0.874 / 0.927 | 0.750 / 0.792 | 0.829 / 0.825 | 0.817 / 0.837 |
+| 4 | 27 | 0.847 / 0.933 | 0.742 / 0.806 | 0.860 / 0.863 | 0.816 / 0.861 |
+| **Mean ± SD** | | **0.869 ± 0.022** | **0.758 ± 0.023** | **0.835 ± 0.019** | **0.821 ± 0.010** |
+
+Xylem is segmented consistently across folds (mean ≈ median). For root and stele the median is clearly above the mean: a few cases with coarse or inconsistent annotations of the stele boundary (part of the cortex labeled as stele) pull the mean down, while the predictions follow the anatomical boundary.
+
+**Validation examples**, one per fold: original image, ground truth, prediction, overlay and pixel errors. Most of the remaining error lies on class boundaries, where the polygon annotations are coarse.
+
+Fold 0: `root_cross_section_130`
+
+![Validation example: root_cross_section_130 (fold 0)](figures/fold_00/root_cross_section_130.png)
+
+Fold 1: `root_cross_section_094`
+
+![Validation example: root_cross_section_094 (fold 1)](figures/fold_01/root_cross_section_094.png)
+
+Fold 2: `root_cross_section_009`
+
+![Validation example: root_cross_section_009 (fold 2)](figures/fold_02/root_cross_section_009.png)
+
+Fold 3: `root_cross_section_074`
+
+![Validation example: root_cross_section_074 (fold 3)](figures/fold_03/root_cross_section_074.png)
+
+Fold 4: `root_cross_section_029`
+
+![Validation example: root_cross_section_029 (fold 4)](figures/fold_04/root_cross_section_029.png)
+
 ## Outputs & Logs
 
-- **nnU-Net checkpoints and validation results:** `data/nnUNet_results/Dataset001_RootVascularBundle/`
+- **nnU-Net checkpoints and validation results:** `data/nnUNet_results/Dataset001_RootCrossSection/`
 - **Validation `1x5` comparison figures:** `results/fold_<n>/`
-- **Preprocessed dataset, fingerprint, and plans:** `data/nnUNet_preprocessed/Dataset001_RootVascularBundle/`
+- **Preprocessed dataset, fingerprint, and plans:** `data/nnUNet_preprocessed/Dataset001_RootCrossSection/`
 - **Hydra run logs and resolved configs:** `logs/runs/<YYYY-MM-DD>/<HH-MM-SS>/`
 
 ## Project Structure

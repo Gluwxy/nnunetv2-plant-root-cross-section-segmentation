@@ -29,8 +29,8 @@ ROOT = Path(__file__).resolve().parents[1]
 rootutils.setup_root(ROOT, indicator="pyproject.toml", pythonpath=True)  # sets PROJECT_ROOT for cfg/paths
 
 DATASET = ROOT / "coco_semantic_segmentation_dataset"
-NNUNET_RAW = ROOT / "data" / "nnUNet_raw" / "Dataset001_RootVascularBundle"
-NNUNET_PREPROCESSED = ROOT / "data" / "nnUNet_preprocessed" / "Dataset001_RootVascularBundle"
+NNUNET_RAW = ROOT / "data" / "nnUNet_raw" / "Dataset001_RootCrossSection"
+NNUNET_PREPROCESSED = ROOT / "data" / "nnUNet_preprocessed" / "Dataset001_RootCrossSection"
 
 with initialize_config_dir(config_dir=str(ROOT / "cfg"), version_base="1.3"):
     EXPORT_CFG = OmegaConf.to_container(compose(config_name="config").export, resolve=True)

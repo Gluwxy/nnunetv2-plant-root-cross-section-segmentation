@@ -1,5 +1,5 @@
-# Prefix for case names (null to infer it from the output folder name)
-prefix: null
+# Prefix for case names: <prefix>_000, <prefix>_001, ... (null to infer it from the output folder name)
+prefix: root_cross_section
 
 # Replace existing cases in the output folder (otherwise fail if it is not empty)
 overwrite: false
