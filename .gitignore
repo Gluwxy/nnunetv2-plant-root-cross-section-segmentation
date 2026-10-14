@@ -9,6 +9,7 @@ png-mask-semantic-dataset/
 .venv/
 __pycache__/
 *.pyc
+*.swp
 .DS_Store
 nnunet_dataset/
 results/

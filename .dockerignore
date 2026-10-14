@@ -12,6 +12,7 @@ CLAUDE.local.md
 .ruff_cache/
 __pycache__/
 *.pyc
+*.swp
 
 notebooks/
 tests/
