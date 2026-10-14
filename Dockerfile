@@ -33,6 +33,10 @@ RUN uv sync --frozen --no-dev --no-group notebooks
 # Ensure commands use the created virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Print logs immediately: without a TTY (docker run without -t), Python buffers stdout and nnU-Net's
+# epoch logs only show up in large blocks or when the process exits. Inherited by nnUNetv2_train.
+ENV PYTHONUNBUFFERED=1
+
 # nnU-Net paths inside the mounted data/ directory, for nnUNetv2_* commands run outside src.main
 # (src.main also sets them through nnUNetV2Runner)
 ENV nnUNet_raw=/app/data/nnUNet_raw \
