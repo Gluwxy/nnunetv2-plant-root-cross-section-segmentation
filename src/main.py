@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 def main(cfg: DictConfig) -> None:
     mcfg = cfg.monai
     os.environ["nnUNet_n_proc_DA"] = str(mcfg.train.n_proc_da)
+    os.environ["nnUNet_compile"] = "t" if mcfg.train.compile else "f"
 
     lcfg = cfg.logger
     os.environ["nnUNet_wandb_enabled"] = "1" if lcfg.enabled else "0"

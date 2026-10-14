@@ -104,6 +104,9 @@ make train-vm ARGS="logger.enabled=true monai.train.fold=1 monai.runner.trainer_
 # Resume training from the latest checkpoint
 make train-vm ARGS="monai.train.continue_training=true"
 
+# Train without torch.compile (no compilation time on the first epoch, but slower epochs)
+make train-vm ARGS="monai.train.compile=false"
+
 # Visualize all trained folds of the 250-epoch trainer, or a single specific fold
 make visualize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainer_250epochs"
 make visualize-vm ARGS="monai.visualize.folds=[fold_1]"

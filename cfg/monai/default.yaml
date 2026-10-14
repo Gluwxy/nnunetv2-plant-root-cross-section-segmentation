@@ -28,6 +28,7 @@ train:
   device: ${get_device:}
   gpu_id: 0
   n_proc_da: 7                  # nnUNet_n_proc_DA: data augmentation workers (CPU cores - 1)
+  compile: true                 # nnUNet_compile: torch.compile on cuda (nnU-Net skips it on mps/cpu)
   continue_training: false      # --c: resume from the latest checkpoint
 
 visualize:
