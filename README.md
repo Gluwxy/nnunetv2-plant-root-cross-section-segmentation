@@ -2,25 +2,6 @@
 
 Semantic segmentation of plant root cross-sections (`root`, `stele`, `xylem`) using **nnU-Net v2**, orchestrated through MONAI's `nnUNetV2Runner` and configured with **Hydra** (`cfg/`).
 
-## Dataset
-
-Images and annotations come from the **xylem2** dataset by Hasib, published on [Roboflow Universe](https://universe.roboflow.com/hasib/xylem2). `make download` fetches it as a COCO segmentation export. If you use it, please cite:
-
-```bibtex
-@misc{ xylem2_dataset,
-  title = { xylem2 Dataset },
-  type = { Open Source Dataset },
-  author = { Hasib },
-  howpublished = { \url{ https://universe.roboflow.com/hasib/xylem2 } },
-  url = { https://universe.roboflow.com/hasib/xylem2 },
-  journal = { Roboflow Universe },
-  publisher = { Roboflow },
-  year = { 2025 },
-  month = { feb },
-  note = { visited on 2026-10-14 },
-}
-```
-
 ## Setup
 
 Create a `.env` file in the project root with your Roboflow API key (and optionally your Weights & Biases API key for experiment tracking):
@@ -243,3 +224,46 @@ make summarize-vm ARGS="monai.runner.trainer_class_name=nnUNetTrainerMetrics_100
 ├── Dockerfile            # Container image for cloud/VM execution
 └── Makefile              # Local and Docker pipeline targets
 ```
+
+## References
+
+### Dataset (xylem2)
+
+Images and annotations come from the **xylem2** dataset by Hasib, published on [Roboflow Universe](https://universe.roboflow.com/hasib/xylem2). `make download` fetches it as a COCO segmentation export. If you use it, please cite:
+
+```bibtex
+@misc{ xylem2_dataset,
+  title = { xylem2 Dataset },
+  type = { Open Source Dataset },
+  author = { Hasib },
+  howpublished = { \url{ https://universe.roboflow.com/hasib/xylem2 } },
+  url = { https://universe.roboflow.com/hasib/xylem2 },
+  journal = { Roboflow Universe },
+  publisher = { Roboflow },
+  year = { 2025 },
+  month = { feb },
+  note = { visited on 2026-10-14 },
+}
+```
+
+### nnU-Net
+
+The segmentation model is [nnU-Net v2](https://github.com/MIC-DKFZ/nnUNet), a self-configuring framework for biomedical image segmentation. If you use this project, please also cite:
+
+```bibtex
+@article{isensee2021nnu,
+  title = {nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation},
+  author = {Isensee, Fabian and Jaeger, Paul F and Kohl, Simon AA and Petersen, Jens and Maier-Hein, Klaus H},
+  journal = {Nature Methods},
+  volume = {18},
+  number = {2},
+  pages = {203--211},
+  year = {2021},
+  publisher = {Nature Publishing Group},
+  doi = {10.1038/s41592-020-01008-z}
+}
+```
+
+## License
+
+The code in this repository is released under the [Apache License 2.0](LICENSE), the same license as nnU-Net v2 and MONAI. The xylem2 dataset is not included in the repository and is subject to its own license on [Roboflow Universe](https://universe.roboflow.com/hasib/xylem2); the example figures in `figures/` contain images from it.
